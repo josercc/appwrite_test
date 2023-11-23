@@ -50,19 +50,57 @@ Future<void> main(List<String> args) async {
 在 ./main.dart 代码如下
 
 ```dart
-Future<dynamic> main(final context) async {
-  final environments = getContextEnvironments(context);
-  for (var element in environments.keys) {
-    context.log("$element=${environments[element]}");
-  }
-  context.log("--------------------------------------");
-  final client = Client()
-      .setEndpoint(getEndPoint(context))
-      .setProject(getProjectId(context))
-      .setKey(getApiKey(context));
-
-  return context.res.json({});
+Future<dynamic> main(final context) {
+  return RunMain(actors: []).run(context);
 }
 ```
 
 这样就可以十分方便的在编辑器进行调试代码了。
+
+## 新建 Actor
+
+我们的后续的逻辑只需要在对应 Actor实现即可。
+
+example
+
+```dart
+class FetchVersionActor extends Actor {
+  FetchVersionActor({required super.context});
+
+  @override
+  String get path => '/fetchVersion';
+
+  @override
+  Future<ActorResponse> runActor() async {
+    final platform = JSON(context.req.bodyRaw)['platform'].string;
+    final version = JSON(context.req.bodyRaw)['version'].string;
+    if (platform == null) {
+      return ActorResponse.failure(-1, 'platform 参数不存在!');
+    }
+    if (version == null) {
+      return ActorResponse.failure(-1, 'version 参数不存在!');
+    }
+
+    final documentList = await databases.listDocuments(
+      databaseId: 'shorebird_patchs',
+      collectionId: 'versions',
+      queries: [
+        Query.equal('platform', platform),
+      ],
+    );
+
+    final documents = documentList.documents.where((element) {
+      return Version.parse(JSON(element.data)['version'].stringValue) >
+          Version.parse(version);
+    });
+
+    if (documents.isEmpty) {
+      return ActorResponse.success();
+    } else {
+      return ActorResponse.success(documents.last.toMap());
+    }
+  }
+}
+```
+
+### Actor
