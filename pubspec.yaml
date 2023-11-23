@@ -1,6 +1,6 @@
 name: appwrite_test
 description: 用来方便测试  Appwrite Dart Function 程序
-version: 0.2.0
+version: 0.3.1
 repository: https://github.com/josercc/appwrite_test
 
 environment:
